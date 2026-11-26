@@ -1,0 +1,23 @@
+# MobileNetV2 on CIFAR-10 — Training Configuration
+# Reference accuracy target: ~92.5% top-1
+# width_mult=1.0; reduce to 0.75 or 0.5 for smaller edge variants
+
+arch: mobilenetv2
+dataset: cifar10
+data_root: ./data
+
+epochs: 200
+batch_size: 128
+lr: 0.1
+min_lr: 0.0
+momentum: 0.9
+weight_decay: 0.0001
+nesterov: true
+lr_schedule: cosine
+width_mult: 1.0
+
+seed: 42
+num_workers: 4
+
+checkpoint_dir: ./checkpoints
+results_dir: ./results

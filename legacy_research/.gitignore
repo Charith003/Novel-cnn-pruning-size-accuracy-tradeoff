@@ -1,0 +1,9 @@
+results/
+checkpoints/
+/data/*
+!/data/*.py
+.venv/
+__pycache__/
+*.py[cod]
+*.pt
+*.pth

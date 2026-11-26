@@ -1,0 +1,26 @@
+# ResNet-56 on CIFAR-10 — Training Configuration
+# Reference accuracy target: ~93.5% top-1
+
+arch: resnet56
+dataset: cifar10
+data_root: ./data
+
+# Training
+epochs: 200
+batch_size: 128
+lr: 0.1
+min_lr: 0.0
+momentum: 0.9
+weight_decay: 0.0001
+nesterov: true
+
+# Schedule: cosine annealing (Loshchilov & Hutter, 2017 SGDR)
+lr_schedule: cosine
+
+# Reproducibility
+seed: 42
+num_workers: 4
+
+# Output
+checkpoint_dir: ./checkpoints
+results_dir: ./results
