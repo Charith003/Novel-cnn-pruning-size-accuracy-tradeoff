@@ -76,6 +76,3 @@ The downloaded CIFAR-10 files, local Python environments, and large model checkp
 
 The project compares AMFI and adaptive AMFI with random, magnitude, and L1 pruning, plus structured pruning experiments. Results report accuracy and other measurements such as sparsity, checkpoint size, latency, throughput, and MACs where available.
 
-## License
-
-No license is currently specified. Contact the repository owner before reusing this work under terms that require an explicit license.
