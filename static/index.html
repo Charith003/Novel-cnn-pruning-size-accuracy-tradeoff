@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMFI Pruning Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2230;--mut:#667085;--line:#e4e7ec;--acc:#4f46e5;
+--c0:#94a3b8;--c1:#2563eb;--c2:#16a34a;--c3:#d97706;--c4:#dc2626;--c5:#7c3aed}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171d2b;--ink:#e8ecf4;--mut:#94a3b8;--line:#2a3345}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:18px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:20px;margin:0}.sub{color:var(--mut);font-size:13px}
+nav{display:flex;gap:6px;padding:0 24px}nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:8px;cursor:pointer}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{padding:16px 24px 40px;max-width:1200px;margin:auto}
+.tab{display:none}.tab.on{display:block}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.kpi .v{font-size:26px;font-weight:650}.kpi .l{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+h2{font-size:15px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mut);cursor:pointer}
+.scroll{overflow-x:auto}.chartbox{position:relative;height:300px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input[type=number],select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.chk{display:inline-flex;gap:5px;align-items:center;margin:2px 10px 2px 0;color:var(--ink);font-size:14px}
+.btn{background:var(--acc);color:#fff;border:0;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:14px}.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.bar>i{display:block;height:100%;width:0;background:var(--acc);transition:width .4s}
+pre{background:#0b1020;color:#cbd5e1;padding:12px;border-radius:8px;height:280px;overflow:auto;font-size:12px;margin:10px 0 0;white-space:pre-wrap}
+.pred{display:flex;align-items:center;gap:8px;margin:6px 0}.pred .b{flex:1;height:10px;background:var(--line);border-radius:6px;overflow:hidden}.pred .b i{display:block;height:100%;background:var(--c2)}
+#preview{max-width:200px;border-radius:8px;margin-top:10px;image-rendering:pixelated}
+.note{font-size:12px;color:var(--mut)}.err{color:var(--c4)}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>AMFI Pruning Studio</h1><div class="sub">Structured channel pruning · Random / L1 / Taylor / FPGM / AMFI · <span id="src"></span></div></div>
+  <div class="sub">Device: <b id="dev">…</b></div>
+</header>
+<nav>
+  <button class="on" data-t="dash">Dashboard</button>
+  <button data-t="run">Run Experiment</button>
+  <button data-t="pred">Predict</button>
+</nav>
+<main>
+<section id="dash" class="tab on">
+  <div class="grid g4" id="kpis" style="margin-bottom:14px"></div>
+  <div class="grid g2">
+    <div class="card"><h2>Model size vs accuracy</h2><div class="chartbox"><canvas id="c1"></canvas></div></div>
+    <div class="card"><h2>Accuracy after fine-tuning (by ratio)</h2><div class="chartbox"><canvas id="c2"></canvas></div></div>
+    <div class="card"><h2>Accuracy before vs after fine-tuning</h2>
+      <select id="ratioSel" style="width:auto;margin-bottom:6px"></select><div class="chartbox" style="height:260px"><canvas id="c3"></canvas></div></div>
+    <div class="card"><h2>Latency (ms, single image)</h2><div class="chartbox"><canvas id="c4"></canvas></div>
+      <div class="note">Latency is noisy on CPU; treat small differences with care.</div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>All experiments <a href="/api/download/csv" style="font-weight:400;font-size:13px;margin-left:8px">download CSV</a></h2>
+    <div class="scroll"><table id="tbl"></table></div></div>
+</section>
+
+<section id="run" class="tab">
+  <div class="grid g2">
+    <div class="card"><h2>Configuration</h2>
+      <label>Dataset</label><select id="ds"><option>CIFAR10</option><option>CIFAR100</option></select>
+      <label>Baseline epochs</label><input type="number" id="be" value="5" min="1" max="50">
+      <label>Fine-tune epochs</label><input type="number" id="fe" value="1" min="1" max="20">
+      <label>Pruning ratios</label>
+      <div id="ratios"><label class="chk"><input type="checkbox" value="0.2" checked>20%</label><label class="chk"><input type="checkbox" value="0.4" checked>40%</label><label class="chk"><input type="checkbox" value="0.6" checked>60%</label><label class="chk"><input type="checkbox" value="0.8">80%</label></div>
+      <label>Methods</label>
+      <div id="methods"></div>
+      <p class="note">Prediction only works for CIFAR-10 models. A new run replaces the dashboard results.</p>
+      <button class="btn" id="go">Start</button> <button class="btn sec" id="stop" disabled>Stop</button>
+    </div>
+    <div class="card"><h2>Progress</h2><div class="bar"><i id="pb"></i></div><div class="note" id="pt">Idle</div><pre id="log"></pre></div>
+  </div>
+</section>
+
+<section id="pred" class="tab">
+  <div class="card" style="max-width:560px"><h2>Classify an image (CIFAR-10 classes)</h2>
+    <label>Model</label><select id="msel"></select>
+    <label>Image</label><input type="file" id="img" accept="image/*">
+    <img id="preview" hidden alt="preview"><br><br>
+    <button class="btn" id="pgo">Predict</button>
+    <div id="pout" style="margin-top:12px"></div>
+  </div>
+</section>
+</main>
+
+<script>
+const METHODS=["Random","L1","Taylor","FPGM","AMFI"],COL={Random:"#94a3b8",L1:"#2563eb",Taylor:"#16a34a",FPGM:"#d97706",AMFI:"#dc2626",Baseline:"#7c3aed"};
+const $=s=>document.querySelector(s);let rows=[],charts={};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,.tab").forEach(e=>e.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.t).classList.add("on");if(b.dataset.t=="pred")loadModels();});
+$("#methods").innerHTML=METHODS.map(m=>`<label class="chk"><input type="checkbox" value="${m}" checked>${m}</label>`).join("");
+const pct=r=>Math.round(r*100)+"%";
+function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
+const base=()=>rows.find(r=>r.Method=="Baseline");
+const opt=(xt,yt)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{title:{display:!!xt,text:xt}},y:{title:{display:!!yt,text:yt}}}});
+
+async function loadResults(){
+  const d=await (await fetch("/api/results")).json();rows=d.rows;$("#src").textContent="data: "+d.source;
+  const b=base(),pr=rows.filter(r=>r.Method!="Baseline");
+  const best=[...pr].sort((a,c)=>c.Accuracy_Percent-a.Accuracy_Percent)[0];
+  const ratios=[...new Set(pr.map(r=>r.Pruning_Ratio))].sort();
+  const high=Math.max(...ratios),bh=pr.filter(r=>r.Pruning_Ratio==high).sort((a,c)=>c.Accuracy_Percent-a.Accuracy_Percent)[0];
+  $("#kpis").innerHTML=[
+   ["Baseline accuracy",b.Accuracy_Percent.toFixed(2)+"%"],["Baseline size",b.Model_Size_MB.toFixed(3)+" MB"],
+   ["Best pruned accuracy",`${best.Accuracy_Percent.toFixed(2)}% (${best.Method} ${pct(best.Pruning_Ratio)})`],
+   [`Best at ${pct(high)} pruning`,`${bh.Method}: ${bh.Accuracy_Percent.toFixed(2)}% · −${bh.Size_Reduction_Percent.toFixed(0)}% size`]
+  ].map(([l,v])=>`<div class="card kpi"><div class="l">${l}</div><div class="v" style="font-size:${v.length>16?17:26}px">${v}</div></div>`).join("");
+
+  mk("#c1",{type:"scatter",data:{datasets:[...METHODS.map(m=>({label:m,showLine:true,borderColor:COL[m],backgroundColor:COL[m],
+    data:pr.filter(r=>r.Method==m).sort((a,c)=>a.Model_Size_MB-c.Model_Size_MB).map(r=>({x:r.Model_Size_MB,y:r.Accuracy_Percent}))})),
+    {label:"Baseline",backgroundColor:COL.Baseline,pointStyle:"star",pointRadius:10,data:[{x:b.Model_Size_MB,y:b.Accuracy_Percent}]}]},options:opt("Size (MB)","Accuracy (%)")});
+  mk("#c2",{type:"bar",data:{labels:ratios.map(pct),datasets:METHODS.map(m=>({label:m,backgroundColor:COL[m],
+    data:ratios.map(r=>(pr.find(x=>x.Method==m&&x.Pruning_Ratio==r)||{}).Accuracy_Percent)}))},options:{...opt(null,"Accuracy (%)"),scales:{y:{min:60,title:{display:true,text:"Accuracy (%)"}}}}});
+  mk("#c4",{type:"bar",data:{labels:ratios.map(pct),datasets:METHODS.map(m=>({label:m,backgroundColor:COL[m],
+    data:ratios.map(r=>(pr.find(x=>x.Method==m&&x.Pruning_Ratio==r)||{}).Latency_ms)}))},options:opt(null,"ms")});
+  $("#ratioSel").innerHTML=ratios.map(r=>`<option value="${r}">${pct(r)} pruning</option>`).join("");drawC3();
+
+  const cols=[["Method","Method"],["Pruning_Ratio","Ratio"],["Accuracy_Percent","Acc %"],["Pre_Finetune_Accuracy","Pre-FT %"],["Accuracy_Drop","Drop pp"],["Parameters","Params"],["Parameter_Reduction_Percent","Param ↓%"],["Model_Size_MB","MB"],["Latency_ms","ms"],["Channels","Channels"]];
+  window._cols=cols;renderTable();
+}
+function drawC3(){const r=parseFloat($("#ratioSel").value),pr=rows.filter(x=>x.Method!="Baseline"&&x.Pruning_Ratio==r);
+  mk("#c3",{type:"bar",data:{labels:pr.map(x=>x.Method),datasets:[{label:"Before fine-tune",backgroundColor:"#94a3b8",data:pr.map(x=>x.Pre_Finetune_Accuracy)},{label:"After fine-tune",backgroundColor:"#4f46e5",data:pr.map(x=>x.Accuracy_Percent)}]},options:opt(null,"Accuracy (%)")})}
+$("#ratioSel").onchange=drawC3;
+let sortK=null,sortD=1;
+function renderTable(){const cols=window._cols;let d=[...rows];if(sortK)d.sort((a,b)=>((a[sortK]??-1)>(b[sortK]??-1)?1:-1)*sortD);
+  const f=(k,v)=>v==null?"–":typeof v=="number"?(k=="Pruning_Ratio"?pct(v):k=="Parameters"?v.toLocaleString():v.toFixed(2)):v;
+  $("#tbl").innerHTML="<tr>"+cols.map(([k,l])=>`<th data-k="${k}">${l}</th>`).join("")+"</tr>"+d.map(r=>"<tr>"+cols.map(([k])=>`<td>${f(k,r[k])}</td>`).join("")+"</tr>").join("");
+  document.querySelectorAll("#tbl th").forEach(th=>th.onclick=()=>{sortD=sortK==th.dataset.k?-sortD:1;sortK=th.dataset.k;renderTable()})}
+
+// ---- run
+let poll=null;
+$("#go").onclick=async()=>{
+  const ratios=[...document.querySelectorAll("#ratios input:checked")].map(i=>+i.value),methods=[...document.querySelectorAll("#methods input:checked")].map(i=>i.value);
+  if(!ratios.length||!methods.length)return alert("Select at least one ratio and one method");
+  const r=await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({dataset:$("#ds").value,base_epochs:+$("#be").value,finetune_epochs:+$("#fe").value,ratios,methods})});
+  const j=await r.json();if(!r.ok)return alert(j.error);startPoll();};
+$("#stop").onclick=()=>fetch("/api/stop",{method:"POST"});
+function startPoll(){clearInterval(poll);poll=setInterval(status,1500);status()}
+async function status(){const s=await (await fetch("/api/status")).json();
+  $("#pb").style.width=s.progress+"%";$("#pt").innerHTML=s.running?`Running… ${s.progress.toFixed(0)}%`:(s.error?`<span class="err">Error: ${s.error}</span>`:(s.log.length?"Finished":"Idle"));
+  const l=$("#log");l.textContent=s.log.join("\n");l.scrollTop=l.scrollHeight;$("#go").disabled=s.running;$("#stop").disabled=!s.running;
+  if(!s.running&&poll){clearInterval(poll);poll=null;if(s.log.length&&!s.error)loadResults();}}
+
+// ---- predict
+async function loadModels(){const m=await (await fetch("/api/models")).json();
+  $("#msel").innerHTML=m.length?m.map(x=>`<option value='${JSON.stringify({m:x.method,r:x.ratio})}'>${x.method} ${pct(x.ratio)} (${x.accuracy.toFixed(1)}%)</option>`).join(""):"<option value=''>No trained models – run an experiment first</option>"}
+$("#img").onchange=e=>{const f=e.target.files[0];if(f){$("#preview").src=URL.createObjectURL(f);$("#preview").hidden=false}};
+$("#pgo").onclick=async()=>{const f=$("#img").files[0],v=$("#msel").value;if(!f||!v)return alert("Choose a model and an image");
+  const sel=JSON.parse(v),fd=new FormData();fd.append("image",f);fd.append("method",sel.m);fd.append("ratio",sel.r);
+  const r=await fetch("/api/predict",{method:"POST",body:fd}),j=await r.json();
+  $("#pout").innerHTML=r.ok?j.predictions.map(p=>`<div class="pred"><span style="width:90px">${p.label}</span><div class="b"><i style="width:${p.prob}%"></i></div><span>${p.prob}%</span></div>`).join(""):`<span class="err">${j.error}</span>`;};
+
+fetch("/api/device").then(r=>r.json()).then(d=>$("#dev").textContent=d.device);
+loadResults();status().then(()=>{fetch("/api/status").then(r=>r.json()).then(s=>{if(s.running)startPoll()})});
+</script>
+</body>
+</html>

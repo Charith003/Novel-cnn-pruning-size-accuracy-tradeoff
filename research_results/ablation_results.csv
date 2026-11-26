@@ -1,0 +1,13 @@
+variant,sparsity,seed,validation_accuracy
+magnitude,0.2,42,0.4804
+mag_grad,0.2,42,0.4758
+mag_act,0.2,42,0.4744
+mag_layer,0.2,42,0.4844
+mag_grad_act,0.2,42,0.4838
+complete,0.2,42,0.4778
+magnitude,0.5,42,0.4738
+mag_grad,0.5,42,0.467
+mag_act,0.5,42,0.4712
+mag_layer,0.5,42,0.471
+mag_grad_act,0.5,42,0.4708
+complete,0.5,42,0.475

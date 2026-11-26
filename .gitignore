@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+# Downloaded data and generated model outputs
+data/
+amfi_outputs/
+*.pt
+*.pth

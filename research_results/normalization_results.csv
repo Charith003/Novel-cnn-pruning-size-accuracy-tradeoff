@@ -1,0 +1,10 @@
+seed,normalization,sparsity,validation_accuracy
+42,layer_minmax,0.5,0.3858
+42,layer_minmax,0.7,0.3504
+42,layer_minmax,0.8,0.3188
+42,layer_mean,0.5,0.4086
+42,layer_mean,0.7,0.3632
+42,layer_mean,0.8,0.2786
+42,percentile,0.5,0.4
+42,percentile,0.7,0.3398
+42,percentile,0.8,0.2386

@@ -1,0 +1,14 @@
+method,seed,target_sparsity,test_accuracy
+baseline,42,0.0,0.4161
+random,42,0.2,0.4917
+magnitude,42,0.2,0.4726
+l1,42,0.2,0.4831
+amfi,42,0.2,0.4835
+adaptive_amfi,42,0.2,0.4847
+random,42,0.5,0.4949
+magnitude,42,0.5,0.4767
+l1,42,0.5,0.4783
+amfi,42,0.5,0.4799
+adaptive_amfi,42,0.5,0.4785
+structured_smallcnn,42,0.2,0.3254
+structured_smallcnn,42,0.5,0.3255

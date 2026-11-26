@@ -1,0 +1,8 @@
+{
+  "device": "cuda",
+  "gpu": "Tesla T4",
+  "baseline_dense_latency_ms": 3.917332800047007,
+  "baseline_throughput_samples_s": 255.27573250554568,
+  "parameter_count": 11173962,
+  "checkpoint_bytes": 44776459
+}
