@@ -30,8 +30,6 @@ The checked-in final test results compare a baseline with unstructured pruning m
 
 These values are from one recorded experiment seed. They are not evidence of statistical significance or a guarantee that another run will reproduce the same ranking. The detailed CSVs in `research_results/` include additional measurements and structured pruning experiments.
 
-![Accuracy versus sparsity](research_results/accuracy_vs_sparsity.png)
-
 ## Run the web app
 
 Python 3.10 or newer is recommended. From the repository root:
